@@ -1,9 +1,23 @@
+const jwt = require("jsonwebtoken");
 const User = require("../../models/User");
+const bcrypt = require("bcrypt");
+require("dotenv").config();
 
-exports.signup = async (req, res) => {
+const generateToken = (user) => {
+  const payload = {
+    username: user.username,
+    _id: user._id,
+  };
+  return jwt.sign(payload, process.env.jwt_SECRET, { expiresIn: "5hr" });
+};
+
+exports.signup = async (req, res, next) => {
   try {
+    const hashedPass = await bcrypt.hash(req.body.password, 10);
+    req.body.password = hashedPass;
     const newUser = await User.create(req.body);
-    res.status(201).json(newUser);
+    const token = generateToken(newUser);
+    res.status(201).json({ token });
   } catch (err) {
     next(err);
   }
